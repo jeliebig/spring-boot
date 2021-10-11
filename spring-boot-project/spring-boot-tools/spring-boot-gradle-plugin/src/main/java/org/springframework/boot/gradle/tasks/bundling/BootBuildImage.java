@@ -84,6 +84,10 @@ public class BootBuildImage extends DefaultTask {
 
 	private boolean cleanCache;
 
+	private boolean useCacheImage;
+
+	private String cacheImage;
+
 	private boolean verboseLogging;
 
 	private PullPolicy pullPolicy;
@@ -254,6 +258,45 @@ public class BootBuildImage extends DefaultTask {
 	@Option(option = "cleanCache", description = "Clean caches before packaging")
 	public void setCleanCache(boolean cleanCache) {
 		this.cleanCache = cleanCache;
+	}
+
+	/**
+	 * Returns the cache image that will be used by the builder. When {@code null}, no
+	 * cache image will be used.
+	 * @return the cache image
+	 */
+	@Input
+	@Optional
+	public String getCacheImage() {
+		return this.cacheImage;
+	}
+
+	/**
+	 * Sets the cache image that will be used by the builder.
+	 * @param cacheImage the cache image
+	 */
+	@Option(option = "cacheImage", description = "The name of the cache image to use")
+	public void setCacheImage(String cacheImage) {
+		this.cacheImage = cacheImage;
+	}
+
+	/**
+	 * Returns whether a cache image should be used by the builder.
+	 * 
+	 * @return whether a cache image should be used
+	 */
+	@Input
+	public boolean isUsingCacheImage() {
+		return this.useCacheImage;
+	}
+
+	/**
+	 * Sets whether a cache image should be used by the builder.
+	 * 
+	 * @param useCacheImage {@code true} to use a cache image, otherwise {@code false}.
+	 */
+	public void setUseCacheImage(boolean useCacheImage) {
+		this.useCacheImage = useCacheImage;
 	}
 
 	/**
@@ -472,6 +515,7 @@ public class BootBuildImage extends DefaultTask {
 	}
 
 	BuildRequest createRequest() {
+		System.out.println("DEBUG: ARCHIVE FILE: " + this.archiveFile.get().getAsFile().getPath());
 		return customize(BuildRequest.of(determineImageReference(),
 				(owner) -> new ZipFileTarArchive(this.archiveFile.get().getAsFile(), owner)));
 	}
@@ -490,9 +534,11 @@ public class BootBuildImage extends DefaultTask {
 	private BuildRequest customize(BuildRequest request) {
 		request = customizeBuilder(request);
 		request = customizeRunImage(request);
+		request = customizeCacheImage(request);
 		request = customizeEnvironment(request);
 		request = customizeCreator(request);
 		request = request.withCleanCache(this.cleanCache);
+		request = request.withUseCacheImage(this.useCacheImage);
 		request = request.withVerboseLogging(this.verboseLogging);
 		request = customizePullPolicy(request);
 		request = customizePublish(request);
@@ -513,6 +559,13 @@ public class BootBuildImage extends DefaultTask {
 	private BuildRequest customizeRunImage(BuildRequest request) {
 		if (StringUtils.hasText(this.runImage)) {
 			return request.withRunImage(ImageReference.of(this.runImage));
+		}
+		return request;
+	}
+
+	private BuildRequest customizeCacheImage(BuildRequest request) {
+		if (StringUtils.hasText(this.cacheImage)) {
+			return request.withCacheImage(ImageReference.of(this.cacheImage));
 		}
 		return request;
 	}
