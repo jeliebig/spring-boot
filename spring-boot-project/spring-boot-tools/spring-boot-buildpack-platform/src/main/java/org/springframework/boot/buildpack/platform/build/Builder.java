@@ -147,7 +147,7 @@ public class Builder {
 	}
 
 	private void executeLifecycle(BuildRequest request, EphemeralBuilder builder) throws IOException {
-		try (Lifecycle lifecycle = new Lifecycle(this.log, this.docker, request, builder)) {
+		try (Lifecycle lifecycle = new Lifecycle(this.log, this.docker, this.dockerConfiguration, request, builder)) {
 			lifecycle.execute();
 		}
 	}

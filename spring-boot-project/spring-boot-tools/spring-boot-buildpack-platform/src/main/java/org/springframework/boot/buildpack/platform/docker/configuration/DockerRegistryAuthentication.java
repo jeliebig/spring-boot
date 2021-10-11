@@ -29,5 +29,11 @@ public interface DockerRegistryAuthentication {
 	 * @return the auth header
 	 */
 	String getAuthHeader();
-
+	
+	/**
+	 * Returns the auth header that should be used for docker registry authentication
+	 * within the lifecycle execution environment.
+	 * @return the auth header
+	 */
+	String getCNBAuthHeader();
 }

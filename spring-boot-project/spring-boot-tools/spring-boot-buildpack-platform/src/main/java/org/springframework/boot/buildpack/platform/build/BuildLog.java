@@ -76,8 +76,10 @@ public interface BuildLog {
 	 * @param request the build request
 	 * @param version the lifecycle version
 	 * @param buildCacheVolume the name of the build cache volume in use
+	 * @param cacheImage the name of the cache image in use
 	 */
-	void executingLifecycle(BuildRequest request, LifecycleVersion version, VolumeName buildCacheVolume);
+	void executingLifecycle(BuildRequest request, LifecycleVersion version, VolumeName buildCacheVolume,
+			ImageReference cacheImage);
 
 	/**
 	 * Log that a specific phase is running.

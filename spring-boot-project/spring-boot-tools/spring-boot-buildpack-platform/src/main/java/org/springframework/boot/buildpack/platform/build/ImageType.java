@@ -36,7 +36,12 @@ enum ImageType {
 	/**
 	 * Buildpack image.
 	 */
-	BUILDPACK("buildpack image");
+	BUILDPACK("buildpack image"),
+
+	/**
+	 * Cache image.
+	 */
+	CACHE("cache image");
 
 	private final String description;
 

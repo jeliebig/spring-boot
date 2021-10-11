@@ -31,6 +31,7 @@ import org.springframework.boot.buildpack.platform.docker.type.ImageReference;
 import org.springframework.boot.buildpack.platform.docker.type.VolumeName;
 import org.springframework.boot.buildpack.platform.io.TarArchive;
 import org.springframework.util.Assert;
+import org.springframework.boot.buildpack.platform.docker.configuration.DockerConfiguration;
 
 /**
  * A buildpack lifecycle used to run the build {@link Phase phases} needed to package an
@@ -46,9 +47,13 @@ class Lifecycle implements Closeable {
 
 	private static final String PLATFORM_API_VERSION_KEY = "CNB_PLATFORM_API";
 
+	private static final String REGISTRY_AUTH_KEY = "CNB_REGISTRY_AUTH";
+
 	private final BuildLog log;
 
 	private final DockerApi docker;
+
+	private final DockerConfiguration dockerConfiguration;
 
 	private final BuildRequest request;
 
@@ -74,12 +79,14 @@ class Lifecycle implements Closeable {
 	 * Create a new {@link Lifecycle} instance.
 	 * @param log build output log
 	 * @param docker the Docker API
+	 * @param dockerConfiguration the docker configuration
 	 * @param request the request to process
 	 * @param builder the ephemeral builder used to run the phases
 	 */
-	Lifecycle(BuildLog log, DockerApi docker, BuildRequest request, EphemeralBuilder builder) {
+	Lifecycle(BuildLog log, DockerApi docker, DockerConfiguration dockerConfiguration, BuildRequest request, EphemeralBuilder builder) {
 		this.log = log;
 		this.docker = docker;
+		this.dockerConfiguration = dockerConfiguration;
 		this.request = request;
 		this.builder = builder;
 		this.lifecycleVersion = LifecycleVersion.parse(builder.getBuilderMetadata().getLifecycle().getVersion());
@@ -114,7 +121,8 @@ class Lifecycle implements Closeable {
 	void execute() throws IOException {
 		Assert.state(!this.executed, "Lifecycle has already been executed");
 		this.executed = true;
-		this.log.executingLifecycle(this.request, this.lifecycleVersion, this.buildCacheVolume);
+		this.log.executingLifecycle(this.request, this.lifecycleVersion, this.buildCacheVolume,
+				(this.request.isUsingCacheImage() ? this.request.getCacheImage() : null));
 		if (this.request.isCleanCache()) {
 			deleteVolume(this.buildCacheVolume);
 		}
@@ -135,6 +143,21 @@ class Lifecycle implements Closeable {
 		phase.withArgs("-daemon");
 		if (this.request.isCleanCache()) {
 			phase.withArgs("-skip-restore");
+		}
+		if (this.request.isUsingCacheImage()) {
+			phase.withArgs("-cache-image", this.request.getCacheImage());
+			if (this.dockerConfiguration.getPublishRegistryAuthentication() != null) {
+				Assert.state(this.request.getCacheImage().getDomain().equals(this.request.getName().getDomain()),
+						"Cache image must use the same domain as the created image");
+				Assert.hasText(
+					this.dockerConfiguration.getPublishRegistryAuthentication().getCNBAuthHeader(),
+					"publishRegistry authentication must not use token auth with cache image"
+				);
+				phase.withEnv(REGISTRY_AUTH_KEY,
+					String.format("{\"%s\": \"%s\"}", request.getCacheImage().getDomain(),
+						this.dockerConfiguration.getPublishRegistryAuthentication().getCNBAuthHeader())
+				);
+			}
 		}
 		if (requiresProcessTypeDefault()) {
 			phase.withArgs("-process-type=web");

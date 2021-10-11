@@ -63,9 +63,13 @@ public abstract class AbstractBuildLog implements BuildLog {
 	}
 
 	@Override
-	public void executingLifecycle(BuildRequest request, LifecycleVersion version, VolumeName buildCacheVolume) {
+	public void executingLifecycle(BuildRequest request, LifecycleVersion version, VolumeName buildCacheVolume,
+			ImageReference cacheImage) {
 		log(" > Executing lifecycle version " + version);
 		log(" > Using build cache volume '" + buildCacheVolume + "'");
+		if (cacheImage != null) {
+			log(" > Using cache image '" + cacheImage + "'");
+		}
 	}
 
 	@Override
